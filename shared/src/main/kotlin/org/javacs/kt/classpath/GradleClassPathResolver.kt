@@ -79,7 +79,7 @@ private fun readDependenciesViaGradleCLI(projectDirectory: Path, gradleScripts: 
     val tmpScripts = gradleScripts.map { gradleScriptToTempFile(it, deleteOnExit = false).toPath().toAbsolutePath() }
     val gradle = getGradleCommand(projectDirectory)
 
-    val command = listOf(gradle.toString()) + tmpScripts.flatMap { listOf("-I", it.toString()) } + gradleTasks + listOf("--console=plain")
+    val command = listOf(gradle.toString()) + tmpScripts.flatMap { listOf("-I", it.toString()) } + gradleTasks + listOf("--console=plain", "-Dorg.gradle.configuration-cache=false")
     val dependencies = findGradleCLIDependencies(command, projectDirectory)
         ?.also { LOG.debug("Classpath for task {}", it) }
         .orEmpty()
@@ -92,6 +92,8 @@ private fun readDependenciesViaGradleCLI(projectDirectory: Path, gradleScripts: 
 
 private fun findGradleCLIDependencies(command: List<String>, projectDirectory: Path): Set<Path>? {
     val (result, errors) = execAndReadStdoutAndStderr(command, projectDirectory)
+    java.io.File("/tmp/kls_gradle_raw.txt").writeText("Command: $command\nResult:\n$result")
+    java.io.File("/tmp/kls_gradle_err.txt").writeText("Errors:\n$errors")
     if ("FAILURE: Build failed" in errors) {
         LOG.warn("Gradle task failed: {}", errors)
     } else {

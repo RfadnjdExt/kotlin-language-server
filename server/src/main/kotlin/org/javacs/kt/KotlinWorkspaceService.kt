@@ -67,6 +67,7 @@ class KotlinWorkspaceService(
                 }
                 FileChangeType.Deleted -> {
                     sf.deletedOnDisk(uri)
+                    docService.clearDiagnostics(uri)
                     path?.let(cp::deletedOnDisk)?.let { if (it) sp.refresh() }
                 }
                 FileChangeType.Changed -> {

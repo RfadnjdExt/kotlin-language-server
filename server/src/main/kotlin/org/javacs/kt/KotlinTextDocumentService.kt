@@ -334,7 +334,7 @@ class KotlinTextDocumentService(
         lintCount++
     }
 
-    private fun clearDiagnostics(uri: URI) {
+    internal fun clearDiagnostics(uri: URI) {
         client.publishDiagnostics(PublishDiagnosticsParams(uri.toString(), listOf()))
     }
 
