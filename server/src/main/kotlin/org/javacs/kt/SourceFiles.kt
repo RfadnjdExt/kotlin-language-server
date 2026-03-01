@@ -1,31 +1,30 @@
 package org.javacs.kt
 
-import com.intellij.openapi.util.text.StringUtil.convertLineSeparators
-import com.intellij.lang.java.JavaLanguage
 import com.intellij.lang.Language
-import org.jetbrains.kotlin.idea.KotlinLanguage
-import org.eclipse.lsp4j.TextDocumentContentChangeEvent
-import org.javacs.kt.util.KotlinLSException
-import org.javacs.kt.util.filePath
-import org.javacs.kt.util.partitionAroundLast
-import org.javacs.kt.util.describeURIs
-import org.javacs.kt.util.describeURI
+import com.intellij.openapi.util.text.StringUtil.convertLineSeparators
 import java.io.BufferedReader
+import java.io.FileNotFoundException
+import java.io.IOException
 import java.io.StringReader
 import java.io.StringWriter
-import java.io.IOException
-import java.io.FileNotFoundException
 import java.net.URI
 import java.nio.file.FileSystems
-import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
+import org.eclipse.lsp4j.TextDocumentContentChangeEvent
+import org.javacs.kt.util.KotlinLSException
+import org.javacs.kt.util.describeURI
+import org.javacs.kt.util.describeURIs
+import org.javacs.kt.util.filePath
+import org.jetbrains.kotlin.idea.KotlinLanguage
 
-private class SourceVersion(val content: String, val version: Int, val language: Language?, val isTemporary: Boolean)
+private class SourceVersion(
+        val content: String,
+        val version: Int,
+        val language: Language?,
+        val isTemporary: Boolean
+)
 
-/**
- * Notify SourcePath whenever a file changes
- */
+/** Notify SourcePath whenever a file changes */
 private class NotifySourcePath(private val sp: SourcePath) {
     private val files = mutableMapOf<URI, SourceVersion>()
 
@@ -44,12 +43,12 @@ private class NotifySourcePath(private val sp: SourcePath) {
     }
 
     fun removeIfTemporary(uri: URI): Boolean =
-        if (sp.deleteIfTemporary(uri)) {
-            files.remove(uri)
-            true
-        } else {
-            false
-        }
+            if (sp.deleteIfTemporary(uri)) {
+                files.remove(uri)
+                true
+            } else {
+                false
+            }
 
     fun removeAll(rm: Collection<URI>) {
         files -= rm
@@ -57,16 +56,15 @@ private class NotifySourcePath(private val sp: SourcePath) {
         rm.forEach(sp::delete)
     }
 
-    val keys get() = files.keys
+    val keys
+        get() = files.keys
 }
 
-/**
- * Keep track of the text of all files in the workspace
- */
+/** Keep track of the text of all files in the workspace */
 class SourceFiles(
-    private val sp: SourcePath,
-    private val contentProvider: URIContentProvider,
-    private val scriptsConfig: ScriptsConfiguration
+        private val sp: SourcePath,
+        private val contentProvider: URIContentProvider,
+        private val scriptsConfig: ScriptsConfiguration
 ) {
     private val workspaceRoots = mutableSetOf<Path>()
     private var exclusions = SourceExclusions(workspaceRoots, scriptsConfig)
@@ -128,20 +126,24 @@ class SourceFiles(
 
     fun changedOnDisk(uri: URI) {
         if (isSource(uri)) {
-            files[uri] = readFromDisk(uri, files[uri]?.isTemporary ?: true)
-                ?: throw KotlinLSException("Could not read source file '$uri' after being changed on disk")
+            files[uri] =
+                    readFromDisk(uri, files[uri]?.isTemporary ?: true)
+                            ?: throw KotlinLSException(
+                                    "Could not read source file '$uri' after being changed on disk"
+                            )
         }
     }
 
-    private fun readFromDisk(uri: URI, temporary: Boolean): SourceVersion? = try {
-        val content = contentProvider.contentOf(uri)
-        SourceVersion(content, -1, languageOf(uri), isTemporary = temporary)
-    } catch (e: FileNotFoundException) {
-        null
-    } catch (e: IOException) {
-        LOG.warn("Exception while reading source file {}", describeURI(uri))
-        null
-    }
+    private fun readFromDisk(uri: URI, temporary: Boolean): SourceVersion? =
+            try {
+                val content = contentProvider.contentOf(uri)
+                SourceVersion(content, -1, languageOf(uri), isTemporary = temporary)
+            } catch (e: FileNotFoundException) {
+                null
+            } catch (e: IOException) {
+                LOG.warn("Exception while reading source file {}", describeURI(uri))
+                null
+            }
 
     private fun isSource(uri: URI): Boolean = isIncluded(uri) && languageOf(uri) != null
 
@@ -160,9 +162,8 @@ class SourceFiles(
         logAdded(addSources, root)
 
         for (uri in addSources) {
-            readFromDisk(uri, temporary = false)?.let {
-                files[uri] = it
-            } ?: LOG.warn("Could not read source file '{}'", uri.path)
+            readFromDisk(uri, temporary = false)?.let { files[uri] = it }
+                    ?: LOG.warn("Could not read source file '{}'", uri.path)
         }
 
         workspaceRoots.add(root)
@@ -182,10 +183,10 @@ class SourceFiles(
     private fun findSourceFiles(root: Path): Set<URI> {
         val sourceMatcher = FileSystems.getDefault().getPathMatcher("glob:*.{kt,kts}")
         return SourceExclusions(listOf(root), scriptsConfig)
-            .walkIncluded()
-            .filter { sourceMatcher.matches(it.fileName) }
-            .map(Path::toUri)
-            .toSet()
+                .walkIncluded()
+                .filter { sourceMatcher.matches(it.fileName) }
+                .map(Path::toUri)
+                .toSet()
     }
 
     fun updateExclusions() {
@@ -194,6 +195,8 @@ class SourceFiles(
     }
 
     fun isOpen(uri: URI): Boolean = (uri in open)
+
+    fun openFiles(): Set<URI> = open.toSet()
 
     fun isIncluded(uri: URI): Boolean = exclusions.isURIIncluded(uri)
 }
@@ -233,8 +236,7 @@ private fun patch(sourceText: String, change: TextDocumentContentChangeEvent): S
     while (true) {
         val next = reader.read()
 
-        if (next == -1) return writer.toString()
-        else writer.write(next)
+        if (next == -1) return writer.toString() else writer.write(next)
     }
 }
 
